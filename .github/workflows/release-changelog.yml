@@ -42,12 +42,28 @@ jobs:
           cat CHANGELOG.md >> NEW_CHANGELOG.md
           mv NEW_CHANGELOG.md CHANGELOG.md
 
+      - name: Generate dashboard/changelog.json
+        run: |
+          mkdir -p dashboard
+          VERSION="${{ steps.release.outputs.version }}"
+          TITLE="${{ steps.release.outputs.title }}"
+          BODY="${{ steps.release.outputs.body }}"
+          DATE=$(date +'%Y-%m-%d')
+
+          jq -n \
+            --arg version "$VERSION" \
+            --arg title "$TITLE" \
+            --arg date "$DATE" \
+            --arg body "$BODY" \
+            '{version: $version, title: $title, date: $date, body: $body}' \
+            > dashboard/changelog.json
+
       - name: Commit and push changelog
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add CHANGELOG.md
-          git commit -m "docs: update changelog for ${{ steps.release.outputs.version }}" || echo "No changes to commit"
+          git add CHANGELOG.md dashboard/changelog.json
+          git commit -m "docs: update changelog + changelog.json for ${{ steps.release.outputs.version }}" || echo "No changes to commit"
           git push
 
   deploy-pages:
@@ -67,7 +83,7 @@ jobs:
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dashboard  # <- change to your Pages build folder
+          path: ./dashboard  # change if your Pages build folder is different
 
       - name: Deploy to GitHub Pages
         id: deployment

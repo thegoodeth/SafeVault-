@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SafeVault Dashboard</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      padding: 2rem;
+      background: #f8fafc;
+      color: #111827;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    h1 {
+      color: #2563eb;
+      font-size: 2rem;
+    }
+    section {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .meta {
+      color: #6b7280;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+    pre {
+      background: #f3f4f6;
+      padding: 1rem;
+      border-radius: 6px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🚀 SafeVault Dashboard</h1>
+    <p>Latest release info is always up to date</p>
+  </header>
+
+  <section id="release-info">
+    <h2 id="release-title">Loading...</h2>
+    <p class="meta">
+      <strong>Version:</strong> <span id="release-version"></span> | 
+      <strong>Date:</strong> <span id="release-date"></span>
+    </p>
+    <pre id="release-body"></pre>
+  </section>
+
+  <script>
+    async function loadRelease() {
+      try {
+        const res = await fetch('./changelog.json?_=' + Date.now()); // prevent caching
+        const data = await res.json();
+        document.getElementById('release-title').textContent = data.title;
+        document.getElementById('release-version').textContent = data.version;
+        document.getElementById('release-date').textContent = data.date;
+        document.getElementById('release-body').textContent = data.body;
+      } catch (err) {
+        document.getElementById('release-title').textContent = "⚠️ Failed to load release info";
+        console.error("Failed to load changelog.json", err);
+      }
+    }
+    loadRelease();
+  </script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-name: Update Changelog on Release
+name: Release Automation (Changelog + Pages)
 
 on:
   release:
@@ -6,7 +6,8 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
+  pages: write
+  id-token: write
 
 jobs:
   update-changelog:
@@ -18,15 +19,18 @@ jobs:
 
       - name: Get release info
         id: release
-        uses: ncipollo/release-action@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "version=${{ github.event.release.tag_name }}" >> $GITHUB_OUTPUT
+          echo "title=${{ github.event.release.name }}" >> $GITHUB_OUTPUT
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          echo "${{ github.event.release.body }}" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Update CHANGELOG.md
         run: |
-          VERSION="${{ github.event.release.tag_name }}"
-          TITLE="${{ github.event.release.name }}"
-          BODY="${{ github.event.release.body }}"
+          VERSION="${{ steps.release.outputs.version }}"
+          TITLE="${{ steps.release.outputs.title }}"
+          BODY="${{ steps.release.outputs.body }}"
           DATE=$(date +'%Y-%m-%d')
 
           echo "## [${VERSION}] – ${DATE}" > NEW_CHANGELOG.md
@@ -43,5 +47,28 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add CHANGELOG.md
-          git commit -m "docs: update changelog for ${{ github.event.release.tag_name }}"
+          git commit -m "docs: update changelog for ${{ steps.release.outputs.version }}" || echo "No changes to commit"
           git push
+
+  deploy-pages:
+    needs: update-changelog
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dashboard  # <- change to your Pages build folder
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
